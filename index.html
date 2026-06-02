@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ma discographie — TuneCore</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+:root{
+  --bg: #0c0c0e;
+  --bg2: #111115;
+  --bg3: #17171d;
+  --bg4: #1e1e26;
+  --border: rgba(255,255,255,.07);
+  --border2: rgba(255,255,255,.12);
+  --text: #f0f0f4;
+  --text2: #9898a8;
+  --text3: #55556a;
+  --blue: #3b82f6;
+  --blue2: #6366f1;
+  --gblue: linear-gradient(135deg,#3b82f6,#6366f1);
+  --gblue-hover: linear-gradient(135deg,#2563eb,#4f46e5);
+  --green: #22c55e;
+  --orange: #f97316;
+  --red: #ef4444;
+  --gold: #f59e0b;
+  --r4:4px; --r6:6px; --r8:8px; --r12:12px; --r20:20px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.4), 0 0 0 1px rgba(255,255,255,.04);
+  --shadow-md: 0 4px 16px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.05);
+  --shadow-xl: 0 20px 60px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.06);
+  --shadow-blue: 0 4px 20px rgba(59,130,246,.35);
+  --font: 'Outfit', sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{height:100%;scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5;min-height:100vh;-webkit-font-smoothing:antialiased;}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px;}
+
+/* ════════════════════════════
+   LOGIN SCREEN
+════════════════════════════ */
+#login-screen{
+  position:fixed;inset:0;z-index:500;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--bg);
+  overflow:hidden;
+}
+/* animated background blobs */
+#login-screen::before{
+  content:'';position:absolute;
+  width:600px;height:600px;
+  background:radial-gradient(circle, rgba(59,130,246,.18) 0%, transparent 70%);
+  top:-100px;left:-100px;
+  animation:blobMove1 8s ease-in-out infinite alternate;
+  pointer-events:none;
+}
+#login-screen::after{
+  content:'';position:absolute;
+  width:500px;height:500px;
+  background:radial-gradient(circle, rgba(99,102,241,.14) 0%, transparent 70%);
+  bottom:-80px;right:-80px;
+  animation:blobMove2 10s ease-in-out infinite alternate;
+  pointer-events:none;
+}
+@keyframes blobMove1{from{transform:translate(0,0) scale(1);}to{transform:translate(60px,40px) scale(1.1);}}
+@keyframes blobMove2{from{transform:translate(0,0) scale(1);}to{transform:translate(-50px,-30px) scale(1.08);}}
+
+/* grid lines bg */
+.login-grid{
+  position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+  background-size:48px 48px;
+  pointer-events:none;
+}
+
+.login-card{
+  position:relative;z-index:1;
+  background:var(--bg2);
+  border:1px solid var(--border2);
+  border-radius:20px;
+  padding:48px 44px 40px;
+  width:100%;max-width:400px;
+  box-shadow:var(--shadow-xl);
+  animation:loginCardIn .5s cubic-bezier(.22,1,.36,1);
+}
+@keyframes loginCardIn{from{opacity:0;transform:translateY(28px) scale(.97);}to{opacity:1;transform:none;}}
+
+.login-logo{
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:32px;
+}
+.login-logo img{
+  height:26px;
+  filter:invert(1) brightness(1.1);
+}
+
+.login-title{
+  text-align:center;
+  font-size:22px;font-weight:800;
+  letter-spacing:-.02em;
+  margin-bottom:6px;
+  background:linear-gradient(135deg,#f0f0f4,#9898a8);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.login-sub{
+  text-align:center;
+  font-size:13px;color:var(--text3);
+  margin-bottom:32px;
+  line-height:1.5;
+}
+
+.btn-google-login{
+  width:100%;
+  display:flex;align-items:center;justify-content:center;gap:12px;
+  background:#fff;
+  color:#1a1a1a;
+  border:none;
+  border-radius:var(--r8);
+  padding:13px 18px;
+  font-family:var(--font);
+  font-size:14.5px;font-weight:600;
+  cursor:pointer;
+  transition:background .15s, box-shadow .15s, transform .1s;
+  box-shadow:0 2px 8px rgba(0,0,0,.3);
+}
+.btn-google-login:hover{background:#f5f5f5;box-shadow:0 4px 16px rgba(0,0,0,.4);transform:translateY(-1px);}
+.btn-google-login:active{transform:translateY(0);}
+
+.login-divider{
+  display:flex;align-items:center;gap:12px;
+  margin:20px 0;color:var(--text3);font-size:12px;
+}
+.login-divider::before,.login-divider::after{content:'';flex:1;height:1px;background:var(--border);}
+
+.login-note{
+  text-align:center;font-size:11.5px;color:var(--text3);
+  line-height:1.6;
+}
+.login-note strong{color:var(--text2);}
+
+.login-err{
+  display:none;
+  background:rgba(239,68,68,.1);
+  border:1px solid rgba(239,68,68,.2);
+  border-radius:var(--r6);
+  color:#f87171;
+  padding:10px 12px;
+  font-size:12.5px;
+  margin-bottom:16px;
+  text-align:center;
+}
+
+/* loading state on btn */
+.btn-google-login.loading{
+  pointer-events:none;opacity:.7;
+}
+.btn-google-login.loading .g-spin{display:block;}
+.btn-google-login .g-spin{display:none;width:18px;height:18px;border:2px solid #ccc;border-top-color:#333;border-radius:50%;animation:spin .5s linear infinite;flex-shrink:0;}
+
+/* ════════════════════════════
+   APP (hidden until login)
+════════════════════════════ */
+#app{display:none;}
+#app.visible{display:block;animation:appIn .4s ease;}
+@keyframes appIn{from{opacity:0;}to{opacity:1;}}
+
+/* ════════════════════════════
+   HEADER
+════════════════════════════ */
+header{
+  background:rgba(12,12,14,.92);
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:100;
+  height:58px;
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+}
+.hdr{
+  max-width:1200px;margin:0 auto;
+  padding:0 28px;height:100%;
+  display:flex;align-items:center;gap:0;
+}
+.hdr-logo{
+  display:flex;align-items:center;
+  margin-right:44px;flex-shrink:0;
+  cursor:default;
+}
+.hdr-logo img{
+  height:22px;
+  filter:invert(1) brightness(1.05);
+}
+.hdr-nav{
+  display:flex;align-items:center;gap:1px;flex:1;
+}
+.hdr-nav a{
+  color:var(--text2);text-decoration:none;
+  font-size:11.5px;font-weight:600;
+  letter-spacing:.07em;text-transform:uppercase;
+  padding:7px 14px;border-radius:var(--r6);
+  transition:color .15s,background .15s;
+  white-space:nowrap;
+}
+.hdr-nav a:hover{color:var(--text);background:rgba(255,255,255,.05);}
+.hdr-nav a.on{color:var(--text);}
+
+.hdr-right{
+  display:flex;align-items:center;gap:6px;
+  margin-left:auto;
+}
+
+/* icon buttons in header */
+.ico-btn{
+  width:34px;height:34px;
+  border-radius:50%;
+  background:var(--bg3);
+  border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;color:var(--text2);
+  transition:color .15s,border-color .15s,background .15s,box-shadow .15s;
+}
+.ico-btn:hover{color:var(--text);border-color:var(--border2);background:var(--bg4);box-shadow:var(--shadow-sm);}
+.ico-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+/* globe = secret trigger */
+#globe-ico{cursor:pointer;}
+
+/* admin badge */
+#admin-badge{
+  display:none;
+  align-items:center;gap:6px;
+  background:linear-gradient(135deg,rgba(59,130,246,.15),rgba(99,102,241,.15));
+  border:1px solid rgba(99,102,241,.3);
+  border-radius:var(--r20);
+  padding:5px 12px 5px 9px;
+  font-size:11px;font-weight:700;
+  color:#818cf8;
+  letter-spacing:.05em;
+  cursor:pointer;
+}
+#admin-badge .pdot{width:6px;height:6px;background:#6366f1;border-radius:50%;animation:pulse 1.6s infinite;}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(99,102,241,.5);}50%{opacity:.6;}70%{box-shadow:0 0 0 5px rgba(99,102,241,0);}}
+
+/* distribuer button */
+.btn-dist{
+  background:var(--gblue);
+  color:#fff;border:none;
+  border-radius:var(--r20);
+  padding:9px 22px;
+  font-family:var(--font);
+  font-size:12px;font-weight:700;
+  letter-spacing:.07em;text-transform:uppercase;
+  cursor:pointer;
+  transition:box-shadow .2s, transform .1s, opacity .15s;
+  box-shadow:var(--shadow-blue);
+  margin-left:6px;
+}
+.btn-dist:hover{box-shadow:0 6px 28px rgba(59,130,246,.5);transform:translateY(-1px);}
+.btn-dist:active{transform:translateY(0);}
+
+/* user avatar */
+.user-avatar{
+  width:34px;height:34px;
+  border-radius:50%;
+  object-fit:cover;
+  border:2px solid var(--border2);
+  cursor:pointer;
+  transition:border-color .15s;
+}
+.user-avatar:hover{border-color:rgba(99,102,241,.5);}
+
+/* logout */
+#btn-logout{
+  background:rgba(239,68,68,.1);
+  border:1px solid rgba(239,68,68,.2);
+  color:#f87171;
+  border-radius:var(--r20);
+  padding:5px 12px;
+  font-family:var(--font);
+  font-size:11px;font-weight:600;
+  cursor:pointer;
+  transition:background .15s;
+  display:none;
+}
+#btn-logout:hover{background:rgba(239,68,68,.22);}
+
+/* ════════════════════════════
+   PAGE
+════════════════════════════ */
+.page{
+  max-width:1200px;margin:0 auto;
+  padding:40px 28px 80px;
+}
+
+/* ── page header ── */
+.page-hdr{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  margin-bottom:32px;flex-wrap:wrap;gap:16px;
+}
+.page-title{
+  font-size:28px;font-weight:800;
+  letter-spacing:-.02em;
+  background:linear-gradient(135deg,#f0f0f4 30%,#9898a8);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+
+/* Add release btn — admin only, hidden by default */
+.btn-new{
+  display:none;
+  align-items:center;gap:7px;
+  background:var(--gblue);
+  color:#fff;border:none;
+  border-radius:var(--r20);
+  padding:10px 22px;
+  font-family:var(--font);
+  font-size:13px;font-weight:700;
+  cursor:pointer;
+  transition:box-shadow .2s,transform .1s;
+  box-shadow:var(--shadow-blue);
+}
+.btn-new:hover{box-shadow:0 6px 28px rgba(59,130,246,.5);transform:translateY(-1px);}
+body.is-admin .btn-new{display:flex;}
+
+/* ════════════════════════════
+   FILTERS
+════════════════════════════ */
+.filters{
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:var(--r12);
+  padding:20px 22px;
+  margin-bottom:24px;
+  box-shadow:var(--shadow-sm);
+}
+.filters-row{
+  display:flex;flex-wrap:wrap;gap:14px;
+  margin-bottom:16px;
+}
+.fg-f{display:flex;flex-direction:column;gap:5px;}
+.fg-f.grow{flex:1;min-width:180px;}
+.fg-f.w180{width:180px;}
+.fg-f.w300{min-width:220px;max-width:360px;}
+.flabel{font-size:11.5px;font-weight:600;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;}
+.finput,.fselect{
+  background:var(--bg4);
+  border:1px solid var(--border);
+  border-radius:var(--r6);
+  color:var(--text);
+  padding:9px 13px;
+  font-family:var(--font);font-size:13px;
+  outline:none;transition:border-color .15s,box-shadow .15s;
+  height:38px;
+}
+.finput::placeholder{color:var(--text3);}
+.finput:focus,.fselect:focus{border-color:rgba(99,102,241,.5);box-shadow:0 0 0 3px rgba(99,102,241,.12);}
+.fselect{
+  cursor:pointer;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2355556a' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 13px center;padding-right:32px;
+}
+.fselect option{background:#1e1e26;}
+
+.filter-actions{display:flex;gap:10px;align-items:center;}
+
+.btn-apply{
+  background:var(--gblue);
+  color:#fff;border:none;
+  border-radius:var(--r20);
+  padding:9px 22px;
+  font-family:var(--font);font-size:12.5px;font-weight:700;
+  letter-spacing:.06em;text-transform:uppercase;
+  cursor:pointer;
+  transition:box-shadow .2s,transform .1s;
+  box-shadow:0 2px 10px rgba(59,130,246,.3);
+}
+.btn-apply:hover{box-shadow:0 4px 18px rgba(59,130,246,.45);transform:translateY(-1px);}
+
+.btn-reset{
+  background:transparent;
+  color:var(--text2);
+  border:1.5px solid var(--border2);
+  border-radius:var(--r20);
+  padding:9px 22px;
+  font-family:var(--font);font-size:12.5px;font-weight:700;
+  letter-spacing:.06em;text-transform:uppercase;
+  cursor:pointer;
+  transition:border-color .15s,color .15s;
+}
+.btn-reset:hover{border-color:var(--text3);color:var(--text);}
+
+.result-count{font-size:13px;color:var(--text3);margin-bottom:16px;}
+
+/* ════════════════════════════
+   RELEASE CARDS
+════════════════════════════ */
+.releases{
+  display:flex;flex-direction:column;
+  border:1px solid var(--border);
+  border-radius:var(--r12);
+  overflow:hidden;
+  box-shadow:var(--shadow-sm);
+}
+
+.rcard{
+  background:var(--bg2);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:stretch;
+  transition:background .15s;
+  position:relative;
+  min-height:116px;
+}
+.rcard:last-child{border-bottom:none;}
+.rcard:hover{background:var(--bg3);}
+
+/* left accent line = status color */
+.rcard::before{
+  content:'';position:absolute;
+  left:0;top:0;bottom:0;width:3px;
+  border-radius:0 2px 2px 0;
+  background:var(--accent-c, transparent);
+  opacity:.8;
+}
+.rcard[data-st="live"]   { --accent-c: var(--green);  }
+.rcard[data-st="pending"]{ --accent-c: var(--orange); }
+.rcard[data-st="refused"]{ --accent-c: var(--red);    }
+
+/* cover */
+.rcover{
+  width:130px;flex-shrink:0;
+  position:relative;overflow:hidden;
+}
+.rcover img{width:100%;height:100%;object-fit:cover;display:block;}
+.rcover-ph{
+  width:100%;height:100%;min-height:116px;
+  background:var(--bg4);
+  display:flex;align-items:center;justify-content:center;
+}
+.rcover-ph svg{width:36px;height:36px;stroke:var(--text3);fill:none;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round;}
+/* tc badge on cover */
+.rcover-badge{
+  position:absolute;bottom:6px;right:6px;
+  width:26px;height:26px;
+  background:rgba(0,0,0,.55);
+  border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  backdrop-filter:blur(4px);
+}
+.rcover-badge svg{width:13px;height:13px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+
+/* content */
+.rcontent{
+  flex:1;padding:16px 20px;
+  display:flex;flex-direction:column;justify-content:center;
+  min-width:0;
+}
+.rtitle{
+  font-size:14.5px;font-weight:700;
+  color:#60a5fa;
+  margin-bottom:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  cursor:pointer;letter-spacing:-.01em;
+  text-decoration:none;
+}
+.rtitle:hover{text-decoration:underline;}
+.rartist{font-size:12px;color:var(--text3);margin-bottom:12px;}
+.rmeta{
+  display:grid;grid-template-columns:110px 1fr;
+  row-gap:3px;column-gap:0;
+}
+.mk{font-size:11.5px;color:var(--text3);}
+.mv{font-size:12px;color:var(--text2);font-family:var(--mono);letter-spacing:.01em;}
+.rstatus-row{margin-top:10px;}
+
+/* status pills */
+.spill{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:4px 11px 4px 7px;
+  border-radius:var(--r20);
+  font-size:11.5px;font-weight:700;
+  letter-spacing:.04em;
+}
+.spill .sdot{width:5px;height:5px;border-radius:50%;}
+.spill.live  {background:rgba(34,197,94,.13);border:1px solid rgba(34,197,94,.3);color:#4ade80;}
+.spill.live .sdot{background:var(--green);animation:pulse 1.5s infinite;}
+.spill.pending{background:rgba(249,115,22,.13);border:1px solid rgba(249,115,22,.3);color:#fb923c;}
+.spill.pending .sdot{background:var(--orange);}
+.spill.refused{background:rgba(239,68,68,.13);border:1px solid rgba(239,68,68,.3);color:#f87171;}
+.spill.refused .sdot{background:var(--red);}
+/* small arrow on live */
+.spill.live::after{content:'›';margin-left:2px;font-size:14px;line-height:1;}
+
+/* right actions */
+.ractions{
+  width:200px;flex-shrink:0;
+  border-left:1px solid var(--border);
+  display:flex;flex-direction:column;justify-content:center;
+  padding:16px 20px;
+  gap:10px;
+}
+.btn-plat,.btn-split-rev{
+  background:transparent;border:none;
+  font-family:var(--font);
+  font-size:12.5px;font-weight:600;
+  cursor:pointer;padding:0;
+  text-align:left;
+  transition:color .15s;
+  white-space:nowrap;
+  display:flex;align-items:center;gap:7px;
+}
+.btn-plat{color:var(--text);}
+.btn-plat svg{color:var(--text2);}
+.btn-plat:hover{color:#60a5fa;}
+.btn-plat:hover svg{color:#60a5fa;}
+.btn-split-rev{color:var(--text2);}
+.btn-split-rev:hover{color:var(--text);}
+.btn-plat svg,.btn-split-rev svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
+
+/* admin card actions */
+.admin-acts{display:none;gap:6px;margin-top:4px;}
+body.is-admin .admin-acts{display:flex;}
+.btn-ed,.btn-rm{
+  flex:1;padding:6px 4px;border-radius:var(--r4);border:none;
+  font-family:var(--font);font-size:11px;font-weight:600;
+  cursor:pointer;transition:background .15s;
+  display:flex;align-items:center;justify-content:center;gap:4px;
+}
+.btn-ed svg,.btn-rm svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.btn-ed{background:rgba(59,130,246,.14);color:#60a5fa;}
+.btn-ed:hover{background:rgba(59,130,246,.26);}
+.btn-rm{background:rgba(239,68,68,.14);color:#f87171;}
+.btn-rm:hover{background:rgba(239,68,68,.26);}
+
+/* empty / loading */
+.statebox{text-align:center;padding:80px 24px;color:var(--text3);}
+.statebox .ico{font-size:40px;margin-bottom:16px;opacity:.4;}
+.statebox h3{font-size:16px;color:var(--text2);margin-bottom:6px;font-weight:600;}
+.spinwrap{display:flex;align-items:center;justify-content:center;padding:60px;gap:10px;color:var(--text3);}
+.spin{width:18px;height:18px;border:2px solid var(--bg4);border-top-color:var(--blue);border-radius:50%;animation:spin .5s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ════════════════════════════
+   MODALS
+════════════════════════════ */
+.ov{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.8);
+  z-index:400;
+  align-items:center;justify-content:center;
+  padding:20px;
+  backdrop-filter:blur(6px);
+}
+.ov.open{display:flex;}
+
+.modal{
+  background:var(--bg2);
+  border:1px solid var(--border2);
+  border-radius:var(--r12);
+  box-shadow:var(--shadow-xl);
+  width:100%;max-width:500px;
+  max-height:90vh;overflow-y:auto;
+  animation:mIn .2s cubic-bezier(.22,1,.36,1);
+}
+@keyframes mIn{from{opacity:0;transform:translateY(18px) scale(.97);}to{opacity:1;transform:none;}}
+
+.mhd{
+  padding:18px 22px 14px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.mhd-title{font-size:15px;font-weight:700;color:var(--text);}
+.mhd-x{
+  width:28px;height:28px;border-radius:50%;
+  background:var(--bg4);border:1px solid var(--border);
+  color:var(--text3);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;transition:color .15s,border-color .15s;
+}
+.mhd-x:hover{color:var(--text);border-color:var(--border2);}
+
+.mbody{padding:20px 22px;display:flex;flex-direction:column;gap:15px;}
+.mft{
+  padding:14px 22px;border-top:1px solid var(--border);
+  display:flex;justify-content:flex-end;gap:10px;
+}
+
+/* form groups */
+.fg{display:flex;flex-direction:column;gap:5px;}
+.fg label{font-size:11.5px;font-weight:600;color:var(--text3);letter-spacing:.04em;}
+.fg input,.fg select{
+  background:var(--bg4);
+  border:1px solid var(--border);
+  border-radius:var(--r6);
+  color:var(--text);
+  padding:9px 12px;
+  font-family:var(--font);font-size:13px;
+  outline:none;
+  transition:border-color .15s,box-shadow .15s;
+  width:100%;
+}
+.fg input:focus,.fg select:focus{border-color:rgba(99,102,241,.5);box-shadow:0 0 0 3px rgba(99,102,241,.12);}
+.fg select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2355556a' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;padding-right:28px;}
+.fg select option{background:#1e1e26;}
+.frow2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+/* cover upload */
+.cover-row{display:flex;gap:12px;align-items:flex-start;}
+.cover-thumb{
+  width:76px;height:76px;border-radius:var(--r8);
+  border:1.5px dashed var(--border2);
+  background:var(--bg4);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;overflow:hidden;cursor:pointer;
+  transition:border-color .15s;
+}
+.cover-thumb:hover{border-color:var(--text3);}
+.cover-thumb img{width:100%;height:100%;object-fit:cover;}
+.cover-thumb .thph{color:var(--text3);}
+.cover-thumb .thph svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;}
+.cover-fields{flex:1;display:flex;flex-direction:column;gap:7px;}
+.btn-pick{
+  background:var(--bg4);border:1px solid var(--border);
+  border-radius:var(--r6);color:var(--text2);
+  padding:8px 12px;font-family:var(--font);font-size:12.5px;
+  cursor:pointer;text-align:center;transition:border-color .15s,color .15s;
+  display:flex;align-items:center;justify-content:center;gap:7px;
+}
+.btn-pick svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+.btn-pick:hover{border-color:var(--border2);color:var(--text);}
+.or-sep{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text3);}
+.or-sep::before,.or-sep::after{content:'';flex:1;height:1px;background:var(--border);}
+.url-inp{
+  background:var(--bg4);border:1px solid var(--border);
+  border-radius:var(--r6);color:var(--text);
+  padding:8px 12px;font-family:var(--font);font-size:12.5px;
+  outline:none;width:100%;transition:border-color .15s;
+}
+.url-inp:focus{border-color:rgba(99,102,241,.5);}
+.url-inp::placeholder{color:var(--text3);}
+
+/* status selector */
+.status-sel{display:flex;gap:8px;}
+.status-sel input{display:none;}
+.so-lbl{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;
+  padding:10px 6px;border-radius:var(--r8);
+  border:1.5px solid var(--border);cursor:pointer;
+  font-size:12px;font-weight:600;color:var(--text3);
+  transition:all .15s;
+}
+.so-lbl .sdot{width:9px;height:9px;border-radius:50%;}
+#so-live:checked  + .so-lbl{border-color:rgba(34,197,94,.4); background:rgba(34,197,94,.1); color:#4ade80;}
+#so-pend:checked  + .so-lbl{border-color:rgba(249,115,22,.4);background:rgba(249,115,22,.1);color:#fb923c;}
+#so-refu:checked  + .so-lbl{border-color:rgba(239,68,68,.4); background:rgba(239,68,68,.1); color:#f87171;}
+.lbl-live  .sdot{background:var(--green);}
+.lbl-pend  .sdot{background:var(--orange);}
+.lbl-refu  .sdot{background:var(--red);}
+
+.errmsg{
+  display:none;
+  background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);
+  border-radius:var(--r6);color:#f87171;
+  padding:9px 12px;font-size:12px;
+}
+
+/* modal buttons */
+.btn-cancel{
+  background:transparent;border:1px solid var(--border2);
+  color:var(--text2);border-radius:var(--r6);
+  padding:9px 18px;font-family:var(--font);font-size:13px;font-weight:600;
+  cursor:pointer;transition:border-color .15s,color .15s;
+}
+.btn-cancel:hover{border-color:var(--text3);color:var(--text);}
+
+.btn-save{
+  background:var(--gblue);
+  color:#fff;border:none;border-radius:var(--r6);
+  padding:9px 22px;font-family:var(--font);font-size:13px;font-weight:700;
+  cursor:pointer;transition:box-shadow .2s,transform .1s;
+  box-shadow:var(--shadow-blue);
+}
+.btn-save:hover{box-shadow:0 6px 22px rgba(59,130,246,.5);transform:translateY(-1px);}
+
+.btn-danger{
+  background:linear-gradient(135deg,rgba(239,68,68,.7),rgba(220,38,38,.7));
+  color:#fff;border:none;border-radius:var(--r6);
+  padding:9px 22px;font-family:var(--font);font-size:13px;font-weight:700;
+  cursor:pointer;box-shadow:0 2px 12px rgba(239,68,68,.3);
+  transition:box-shadow .2s,transform .1s;
+}
+.btn-danger:hover{box-shadow:0 6px 22px rgba(239,68,68,.5);transform:translateY(-1px);}
+
+/* ── TOASTS ── */
+.toasts{position:fixed;bottom:22px;right:22px;z-index:999;display:flex;flex-direction:column;gap:8px;pointer-events:none;}
+.tst{
+  background:var(--bg3);
+  border:1px solid var(--border2);
+  border-radius:var(--r8);
+  padding:11px 15px;font-size:13px;color:var(--text);
+  box-shadow:var(--shadow-md);
+  display:flex;align-items:center;gap:9px;
+  pointer-events:auto;
+  animation:tIn .2s ease;max-width:280px;
+}
+@keyframes tIn{from{opacity:0;transform:translateX(14px);}to{opacity:1;transform:none;}}
+.tst.ok {border-left:3px solid var(--green);}
+.tst.err{border-left:3px solid var(--red);}
+.tst.nfo{border-left:3px solid var(--blue2);}
+.tst svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
+.tst.ok  svg{color:var(--green);}
+.tst.err svg{color:var(--red);}
+.tst.nfo svg{color:var(--blue2);}
+
+@media(max-width:700px){.ractions{display:none;}.frow2{grid-template-columns:1fr;}.hdr-nav{display:none;}}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════ LOGIN SCREEN ══════════════════ -->
+<div id="login-screen">
+  <div class="login-grid"></div>
+  <div class="login-card">
+    <div class="login-logo">
+      <img
+        src="https://cdn.trustpilot.net/consumersite-businessunitimages/46de558a0000640005012d51/profile-description/Tune-Core-Transparent-black.png"
+        alt="TuneCore"
+        id="login-logo-img"
+        onerror="this.style.display='none';document.getElementById('login-logo-txt').style.display='block'">
+      <span id="login-logo-txt" style="display:none;font-size:22px;font-weight:800;letter-spacing:-.03em;color:#f0f0f4">tunecore</span>
+    </div>
+    <h2 class="login-title">Espace distribution</h2>
+    <p class="login-sub">Accédez à votre discographie et gérez vos sorties musicales.</p>
+    <div class="login-err" id="login-err"></div>
+    <button class="btn-google-login" id="btn-glogin" onclick="doGoogleLogin()">
+      <div class="g-spin"></div>
+      <svg width="18" height="18" viewBox="0 0 48 48" id="google-svg" style="flex-shrink:0">
+        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+      </svg>
+      <span>Continuer avec Google</span>
+    </button>
+    <div class="login-divider">accès label</div>
+    <p class="login-note">Ce portail est <strong>réservé aux ayants droit</strong>.<br>Seuls les comptes autorisés peuvent accéder à la gestion des sorties.</p>
+  </div>
+</div>
+
+<!-- ══════════════════ APP ══════════════════ -->
+<div id="app">
+
+  <!-- HEADER -->
+  <header>
+    <div class="hdr">
+      <div class="hdr-logo">
+        <img src="https://cdn.trustpilot.net/consumersite-businessunitimages/46de558a0000640005012d51/profile-description/Tune-Core-Transparent-black.png"
+          alt="TuneCore"
+          onerror="this.style.display='none';document.getElementById('hdr-logo-txt').style.display='block'">
+        <span id="hdr-logo-txt" style="display:none;font-size:18px;font-weight:800;letter-spacing:-.03em;color:#f0f0f4">tunecore</span>
+      </div>
+      <nav class="hdr-nav">
+        <a href="#" class="on">SORTIES</a>
+        <a href="#">REVENUS &amp; STATISTIQUES</a>
+        <a href="#">PUBLISHING</a>
+        <a href="#">RESSOURCES</a>
+      </nav>
+      <div class="hdr-right">
+        <div id="admin-badge" onclick="toast('Mode admin actif — modifie tes sorties directement','nfo')">
+          <div class="pdot"></div>ADMIN
+        </div>
+        <button id="btn-logout" onclick="doLogout()">Déconnexion</button>
+        <!-- Bell -->
+        <div class="ico-btn" title="Notifications">
+          <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </div>
+        <!-- Cart -->
+        <div class="ico-btn" title="Panier">
+          <svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        </div>
+        <!-- User (shows avatar after login) -->
+        <div class="ico-btn" id="hdr-user-btn" title="Profil">
+          <img id="user-avatar" class="user-avatar" src="" alt="" style="display:none">
+          <svg id="user-icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <!-- Globe = secret trigger -->
+        <div class="ico-btn" id="globe-ico" title="Langue">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        </div>
+        <button class="btn-dist">DISTRIBUER</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- PAGE -->
+  <div class="page">
+    <div class="page-hdr">
+      <h1 class="page-title">Ma discographie</h1>
+      <button class="btn-new" onclick="openReleaseModal(null)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nouvelle sortie
+      </button>
+    </div>
+
+    <!-- FILTERS -->
+    <div class="filters">
+      <div class="filters-row">
+        <div class="fg-f grow">
+          <span class="flabel">Recherche</span>
+          <input class="finput" id="f-search" type="text" placeholder="entrer un titre d'album ou un artiste…">
+        </div>
+        <div class="fg-f w180">
+          <span class="flabel">Type de sortie</span>
+          <select class="fselect" id="f-type">
+            <option value="">Toutes les sorties</option>
+            <option value="Single">Single</option>
+            <option value="Album">Album</option>
+            <option value="EP">EP</option>
+            <option value="Mixtape">Mixtape</option>
+          </select>
+        </div>
+        <div class="fg-f w180">
+          <span class="flabel">Statut</span>
+          <select class="fselect" id="f-status">
+            <option value="">Tous les statuts</option>
+            <option value="live">Live</option>
+            <option value="pending">En attente</option>
+            <option value="refused">Refused</option>
+          </select>
+        </div>
+      </div>
+      <div class="filters-row" style="margin-bottom:14px">
+        <div class="fg-f w300">
+          <span class="flabel">Trier par</span>
+          <select class="fselect" id="f-sort">
+            <option value="date_desc">Date de création – des plus récentes aux plus anciennes</option>
+            <option value="date_asc">Date de création – des plus anciennes aux plus récentes</option>
+            <option value="az">Titre A → Z</option>
+            <option value="za">Titre Z → A</option>
+          </select>
+        </div>
+      </div>
+      <div class="filter-actions">
+        <button class="btn-apply" onclick="applyFilters()">APPLIQUER</button>
+        <button class="btn-reset" onclick="resetFilters()">RÉINITIALISER</button>
+      </div>
+    </div>
+
+    <div class="result-count" id="result-count">Chargement…</div>
+    <div id="releases-wrap">
+      <div class="spinwrap"><div class="spin"></div> Chargement de la discographie…</div>
+    </div>
+  </div>
+</div>
+
+<!-- TOASTS -->
+<div class="toasts" id="toasts"></div>
+
+<!-- ══ MODAL: Release ══ -->
+<div class="ov" id="ov-release">
+  <div class="modal">
+    <div class="mhd">
+      <span class="mhd-title" id="mrel-title">Nouvelle sortie</span>
+      <button class="mhd-x" onclick="closeOv('ov-release')">✕</button>
+    </div>
+    <div class="mbody">
+      <!-- Cover -->
+      <div class="fg"><label>Cover</label>
+        <div class="cover-row">
+          <div class="cover-thumb" id="cthumb" onclick="document.getElementById('cfile').click()">
+            <div class="thph"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
+          </div>
+          <div class="cover-fields">
+            <input type="file" id="cfile" accept="image/*" style="display:none" onchange="onFile(event)">
+            <div class="btn-pick" onclick="document.getElementById('cfile').click()">
+              <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Importer une image
+            </div>
+            <div class="or-sep">ou</div>
+            <input class="url-inp" id="curl" type="url" placeholder="https://… lien direct vers l'image" oninput="onCUrl(this.value)">
+          </div>
+        </div>
+      </div>
+      <!-- Titre / Artiste -->
+      <div class="frow2">
+        <div class="fg"><label>Titre *</label><input id="mt" type="text" placeholder="Titre de la sortie"></div>
+        <div class="fg"><label>Artiste *</label><input id="ma" type="text" placeholder="Nom de l'artiste"></div>
+      </div>
+      <!-- Type / Date -->
+      <div class="frow2">
+        <div class="fg"><label>Type de sortie</label>
+          <select id="mtype">
+            <option value="Single">Single</option>
+            <option value="Album">Album</option>
+            <option value="EP">EP</option>
+            <option value="Mixtape">Mixtape</option>
+          </select>
+        </div>
+        <div class="fg"><label>Date de sortie</label><input id="mdate" type="date"></div>
+      </div>
+      <!-- UPC / ISRC -->
+      <div class="frow2">
+        <div class="fg"><label>UPC</label><input id="mupc" type="text" placeholder="859000000000" maxlength="13"></div>
+        <div class="fg"><label>Code ISRC</label><input id="misrc" type="text" placeholder="FR-XXX-00-00000" maxlength="15"></div>
+      </div>
+      <!-- Status -->
+      <div class="fg"><label>Statut</label>
+        <div class="status-sel">
+          <input type="radio" name="ms" id="so-live" value="live" checked>
+          <label for="so-live" class="so-lbl lbl-live"><div class="sdot"></div>Live</label>
+          <input type="radio" name="ms" id="so-pend" value="pending">
+          <label for="so-pend" class="so-lbl lbl-pend"><div class="sdot"></div>En attente</label>
+          <input type="radio" name="ms" id="so-refu" value="refused">
+          <label for="so-refu" class="so-lbl lbl-refu"><div class="sdot"></div>Refused</label>
+        </div>
+      </div>
+      <div class="errmsg" id="rel-err"></div>
+    </div>
+    <div class="mft">
+      <button class="btn-cancel" onclick="closeOv('ov-release')">Annuler</button>
+      <button class="btn-save" onclick="saveRelease()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: Delete ══ -->
+<div class="ov" id="ov-del">
+  <div class="modal" style="max-width:360px">
+    <div class="mhd">
+      <span class="mhd-title">Supprimer la sortie</span>
+      <button class="mhd-x" onclick="closeOv('ov-del')">✕</button>
+    </div>
+    <div class="mbody">
+      <p style="color:var(--text2);font-size:14px;line-height:1.7">
+        Supprimer <strong id="del-name" style="color:var(--text)"></strong> ?<br>
+        <span style="font-size:12px;color:var(--text3)">Cette action est irréversible.</span>
+      </p>
+    </div>
+    <div class="mft">
+      <button class="btn-cancel" onclick="closeOv('ov-del')">Annuler</button>
+      <button class="btn-danger" onclick="confirmDel()">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── Firebase ── */
+firebase.initializeApp({
+  apiKey:"AIzaSyDXdEnimnKl8dG7xXprd5uhWFANddUr2Sg",
+  authDomain:"dancookieclicker.firebaseapp.com",
+  projectId:"dancookieclicker",
+  storageBucket:"dancookieclicker.firebasestorage.app",
+  messagingSenderId:"438891454674",
+  appId:"1:438891454674:web:603b70cad0b1cd422fcd0b"
+});
+const db=firebase.firestore(), auth=firebase.auth();
+const ADMIN="Rj1pWAOmZTYBUCNyX8c0lYOl2dq2";
+
+/* ── State ── */
+let all=[],editId=null,delId=null,globeN=0;
+
+/* ── Auth state ── */
+auth.onAuthStateChanged(u=>{
+  if(u){
+    // Show app, hide login
+    document.getElementById('login-screen').style.display='none';
+    const app=document.getElementById('app');
+    app.classList.add('visible');
+
+    // Set avatar
+    const av=document.getElementById('user-avatar'),ic=document.getElementById('user-icon');
+    if(u.photoURL){av.src=u.photoURL;av.style.display='block';ic.style.display='none';}
+    else{av.style.display='none';ic.style.display='block';}
+
+    // Admin check
+    const badge=document.getElementById('admin-badge'),lo=document.getElementById('btn-logout');
+    if(u.uid===ADMIN){
+      document.body.classList.add('is-admin');
+      badge.style.display='flex';lo.style.display='block';
+    } else {
+      document.body.classList.remove('is-admin');
+      badge.style.display='none';lo.style.display='block';
+    }
+  } else {
+    // Show login
+    document.getElementById('login-screen').style.display='flex';
+    document.getElementById('app').classList.remove('visible');
+    document.getElementById('app').style.display='none';
+    document.getElementById('app').offsetHeight; // force reflow
+    document.getElementById('app').style.display='';
+    document.body.classList.remove('is-admin');
+  }
+});
+
+/* ── Google login ── */
+async function doGoogleLogin(){
+  const btn=document.getElementById('btn-glogin');
+  const err=document.getElementById('login-err');
+  btn.classList.add('loading');
+  document.getElementById('google-svg').style.display='none';
+  err.style.display='none';
+  try{
+    const p=new firebase.auth.GoogleAuthProvider();
+    const r=await auth.signInWithPopup(p);
+    if(r.user.uid!==ADMIN){
+      // Allow any user to view — only admin gets edit powers
+      // (remove next 3 lines if you want ONLY admin to log in)
+    }
+  } catch(e){
+    err.textContent='Erreur : '+e.message;
+    err.style.display='block';
+  }
+  btn.classList.remove('loading');
+  document.getElementById('google-svg').style.display='block';
+}
+
+async function doLogout(){
+  await auth.signOut();
+  toast('Déconnecté','nfo');
+}
+
+/* ── Globe secret (5 clics) ── */
+document.getElementById('globe-ico').addEventListener('click',()=>{
+  globeN++;
+  if(globeN>=5){
+    globeN=0;
+    const u=auth.currentUser;
+    if(u&&u.uid===ADMIN){toast('Déjà admin ✓','nfo');return;}
+    if(!u){toast('Connecte-toi d\'abord avec Google','err');return;}
+    toast('UID non autorisé pour l\'admin','err');
+  }
+});
+
+/* ── Firestore ── */
+db.collection('releases').onSnapshot(snap=>{
+  all=snap.docs.map(d=>({id:d.id,...d.data()}));
+  render(filtered());
+},err=>{
+  document.getElementById('releases-wrap').innerHTML=
+    `<div class="statebox"><div class="ico">⚠️</div><h3>Erreur Firebase</h3><p>${esc(err.message)}</p></div>`;
+});
+
+/* ── Filters ── */
+function filtered(){
+  const s=document.getElementById('f-search').value.toLowerCase(),
+        tp=document.getElementById('f-type').value,
+        st=document.getElementById('f-status').value,
+        so=document.getElementById('f-sort').value;
+  let arr=all.filter(r=>{
+    const ms=!s||(r.title||'').toLowerCase().includes(s)||(r.artist||'').toLowerCase().includes(s)||(r.isrc||'').toLowerCase().includes(s)||(r.upc||'').toLowerCase().includes(s);
+    return ms&&(!tp||r.releaseType===tp)&&(!st||r.status===st);
+  });
+  arr.sort((a,b)=>{
+    if(so==='date_desc')return(b.releaseDate||'').localeCompare(a.releaseDate||'');
+    if(so==='date_asc') return(a.releaseDate||'').localeCompare(b.releaseDate||'');
+    if(so==='az')       return(a.title||'').localeCompare(b.title||'');
+    if(so==='za')       return(b.title||'').localeCompare(a.title||'');
+    return 0;
+  });
+  return arr;
+}
+function applyFilters(){render(filtered());}
+function resetFilters(){
+  ['f-search','f-type','f-status'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-sort').value='date_desc';
+  render(all);
+}
+
+/* ── Render ── */
+function render(list){
+  const wrap=document.getElementById('releases-wrap'),
+        cnt=document.getElementById('result-count');
+  cnt.textContent=`${list.length} résultat${list.length!==1?'s':''} trouvé${list.length!==1?'s':''}`;
+  if(!list.length){
+    wrap.innerHTML=`<div class="statebox"><div class="ico">🎵</div><h3>Aucune sortie trouvée</h3><p style="color:var(--text3);font-size:13px">Aucun résultat pour ces critères.</p></div>`;
+    return;
+  }
+  const SL={live:'Live',pending:'En attente',refused:'Refused'};
+  wrap.innerHTML=`<div class="releases">${list.map(r=>{
+    const st=r.status||'live', dt=fmtD(r.releaseDate);
+    const cov=r.coverUrl
+      ?`<img src="${esc(r.coverUrl)}" alt="" onerror="this.style.display='none'"> <div class="rcover-badge"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>`
+      :`<div class="rcover-ph"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>`;
+    return`<div class="rcard" data-st="${st}" data-id="${r.id}">
+      <div class="rcover">${cov}</div>
+      <div class="rcontent">
+        <span class="rtitle">${esc(r.title||'—')}</span>
+        <span class="rartist">by ${esc(r.artist||'Artiste inconnu')}</span>
+        <div class="rmeta">
+          <span class="mk">Type de sortie</span><span class="mv">${esc(r.releaseType||'Single')}</span>
+          <span class="mk">Date de sortie</span><span class="mv">${esc(dt)}</span>
+          <span class="mk">UPC:</span><span class="mv">${esc(r.upc||'—')}</span>
+          <span class="mk">ISRC:</span><span class="mv">${esc(r.isrc||'—')}</span>
+        </div>
+        <div class="rstatus-row"><span class="spill ${st}"><span class="sdot"></span>${SL[st]||st}</span></div>
+      </div>
+      <div class="ractions">
+        <button class="btn-plat">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          AJOUTER DES PLATEFORMES
+        </button>
+        <button class="btn-split-rev">
+          <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          SPLIT DES REVENUS
+        </button>
+        <div class="admin-acts">
+          <button class="btn-ed" onclick="openEdit('${r.id}')">
+            <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Modifier
+          </button>
+          <button class="btn-rm" onclick="openDel('${r.id}','${esc(r.title||'')}')">
+            <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            Suppr.
+          </button>
+        </div>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+/* ── Release modal ── */
+function openReleaseModal(data){
+  editId=data?data.id:null;
+  document.getElementById('mrel-title').textContent=data?'Modifier la sortie':'Nouvelle sortie';
+  document.getElementById('mt').value=data?.title||'';
+  document.getElementById('ma').value=data?.artist||'';
+  document.getElementById('mtype').value=data?.releaseType||'Single';
+  document.getElementById('mdate').value=data?.releaseDate||'';
+  document.getElementById('mupc').value=data?.upc||'';
+  document.getElementById('misrc').value=data?.isrc||'';
+  document.getElementById('curl').value=data?.coverUrl||'';
+  document.getElementById('rel-err').style.display='none';
+  const st=data?.status||'live';
+  document.querySelectorAll('input[name="ms"]').forEach(r=>r.checked=r.value===st);
+  const th=document.getElementById('cthumb');
+  th.innerHTML=data?.coverUrl
+    ?`<img src="${esc(data.coverUrl)}" alt="">`
+    :`<div class="thph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>`;
+  openOv('ov-release');
+}
+function openEdit(id){const r=all.find(x=>x.id===id);if(r)openReleaseModal(r);}
+
+async function saveRelease(){
+  const t=document.getElementById('mt').value.trim(),a=document.getElementById('ma').value.trim();
+  if(!t||!a){showErr('rel-err','Titre et artiste requis.');return;}
+  const d={
+    title:t,artist:a,
+    releaseType:document.getElementById('mtype').value,
+    releaseDate:document.getElementById('mdate').value,
+    upc:document.getElementById('mupc').value.trim(),
+    isrc:document.getElementById('misrc').value.trim(),
+    coverUrl:document.getElementById('curl').value.trim(),
+    status:document.querySelector('input[name="ms"]:checked')?.value||'live',
+    updatedAt:new Date().toISOString()
+  };
+  try{
+    if(editId){await db.collection('releases').doc(editId).update(d);toast('Sortie mise à jour ✓','ok');}
+    else{d.createdAt=new Date().toISOString();await db.collection('releases').add(d);toast('Sortie ajoutée ✓','ok');}
+    closeOv('ov-release');
+  }catch(e){showErr('rel-err',e.message);}
+}
+
+/* ── Delete ── */
+function openDel(id,name){delId=id;document.getElementById('del-name').textContent=name||'cette sortie';openOv('ov-del');}
+async function confirmDel(){
+  if(!delId)return;
+  try{await db.collection('releases').doc(delId).delete();toast('Supprimé','nfo');closeOv('ov-del');}
+  catch(e){toast('Erreur : '+e.message,'err');}
+}
+
+/* ── Cover ── */
+function onFile(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    document.getElementById('curl').value=ev.target.result;
+    document.getElementById('cthumb').innerHTML=`<img src="${ev.target.result}" alt="">`;
+  };
+  r.readAsDataURL(f);
+}
+function onCUrl(v){
+  const th=document.getElementById('cthumb');
+  if(v&&v.startsWith('http')){
+    th.innerHTML=`<img src="${esc(v)}" alt="" onerror="this.parentNode.innerHTML='<div class=thph style=color:#f87171>✕</div>'">`;
+  } else {
+    th.innerHTML=`<div class="thph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>`;
+  }
+}
+
+/* ── Overlay ── */
+function openOv(id){document.getElementById(id).classList.add('open');}
+function closeOv(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.ov').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
+
+/* ── Toast ── */
+function toast(msg,type='nfo'){
+  const icons={
+    ok:`<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>`,
+    err:`<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+    nfo:`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`
+  };
+  const el=document.createElement('div');
+  el.className=`tst ${type}`;
+  el.innerHTML=icons[type]+msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(()=>{el.style.opacity='0';el.style.transition='opacity .3s';setTimeout(()=>el.remove(),300);},3200);
+}
+
+/* ── Utils ── */
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function fmtD(d){if(!d)return'—';try{const[y,m,dy]=d.split('-');return`${dy}.${m}.${y}`;}catch{return d;}}
+function showErr(id,msg){const el=document.getElementById(id);el.textContent=msg;el.style.display='block';}
+</script>
+</body>
+</html>
