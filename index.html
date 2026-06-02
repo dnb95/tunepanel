@@ -251,7 +251,7 @@ header{
 
 /* distribuer button */
 .btn-dist{
-  background:var(--gblue);
+  background:linear-gradient(90deg,#44BAFF 0%,#0038FF 100%);
   color:#fff;border:none;
   border-radius:var(--r20);
   padding:9px 22px;
@@ -260,10 +260,10 @@ header{
   letter-spacing:.07em;text-transform:uppercase;
   cursor:pointer;
   transition:box-shadow .2s, transform .1s, opacity .15s;
-  box-shadow:var(--shadow-blue);
+  box-shadow:0 4px 20px rgba(0,56,255,.38);
   margin-left:6px;
 }
-.btn-dist:hover{box-shadow:0 6px 28px rgba(59,130,246,.5);transform:translateY(-1px);}
+.btn-dist:hover{box-shadow:0 6px 28px rgba(0,56,255,.55);transform:translateY(-1px);}
 .btn-dist:active{transform:translateY(0);}
 
 /* user avatar */
@@ -371,7 +371,7 @@ body.is-admin .btn-new{display:flex;}
 .filter-actions{display:flex;gap:10px;align-items:center;}
 
 .btn-apply{
-  background:var(--gblue);
+  background:linear-gradient(90deg,#44BAFF 0%,#0038FF 100%);
   color:#fff;border:none;
   border-radius:var(--r20);
   padding:9px 22px;
@@ -379,9 +379,9 @@ body.is-admin .btn-new{display:flex;}
   letter-spacing:.06em;text-transform:uppercase;
   cursor:pointer;
   transition:box-shadow .2s,transform .1s;
-  box-shadow:0 2px 10px rgba(59,130,246,.3);
+  box-shadow:0 2px 10px rgba(0,56,255,.32);
 }
-.btn-apply:hover{box-shadow:0 4px 18px rgba(59,130,246,.45);transform:translateY(-1px);}
+.btn-apply:hover{box-shadow:0 4px 18px rgba(0,56,255,.52);transform:translateY(-1px);}
 
 .btn-reset{
   background:transparent;
@@ -516,12 +516,9 @@ body.is-admin .btn-new{display:flex;}
   display:flex;align-items:center;gap:7px;
 }
 .btn-plat{color:var(--text);}
-.btn-plat svg{color:var(--text2);}
 .btn-plat:hover{color:#60a5fa;}
-.btn-plat:hover svg{color:#60a5fa;}
 .btn-split-rev{color:var(--text2);}
 .btn-split-rev:hover{color:var(--text);}
-.btn-plat svg,.btn-split-rev svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
 
 /* admin card actions */
 .admin-acts{display:none;gap:6px;margin-top:4px;}
@@ -963,7 +960,7 @@ const db=firebase.firestore(), auth=firebase.auth();
 const ADMIN="Rj1pWAOmZTYBUCNyX8c0lYOl2dq2";
 
 /* ── State ── */
-let all=[],editId=null,delId=null,globeN=0;
+let all=[],editId=null,delId=null,globeN=0,adminHidden=false;
 
 /* ── Auth state ── */
 auth.onAuthStateChanged(u=>{
@@ -973,16 +970,15 @@ auth.onAuthStateChanged(u=>{
     const app=document.getElementById('app');
     app.classList.add('visible');
 
-    // Set avatar
+    // Avatar : toujours l'icône SVG, jamais la photo Google
     const av=document.getElementById('user-avatar'),ic=document.getElementById('user-icon');
-    if(u.photoURL){av.src=u.photoURL;av.style.display='block';ic.style.display='none';}
-    else{av.style.display='none';ic.style.display='block';}
+    av.style.display='none';
+    ic.style.display='block';
 
     // Admin check
     const badge=document.getElementById('admin-badge'),lo=document.getElementById('btn-logout');
     if(u.uid===ADMIN){
-      document.body.classList.add('is-admin');
-      badge.style.display='flex';lo.style.display='block';
+      applyAdminVisibility(u);
     } else {
       document.body.classList.remove('is-admin');
       badge.style.display='none';lo.style.display='block';
@@ -1025,17 +1021,33 @@ async function doLogout(){
   toast('Déconnecté','nfo');
 }
 
-/* ── Globe secret (5 clics) ── */
+/* ── Globe secret (10 clics) → masque/restaure les infos admin ── */
 document.getElementById('globe-ico').addEventListener('click',()=>{
   globeN++;
-  if(globeN>=5){
+  if(globeN>=10){
     globeN=0;
     const u=auth.currentUser;
-    if(u&&u.uid===ADMIN){toast('Déjà admin ✓','nfo');return;}
-    if(!u){toast('Connecte-toi d\'abord avec Google','err');return;}
-    toast('UID non autorisé pour l\'admin','err');
+    if(u&&u.uid===ADMIN){
+      adminHidden=!adminHidden;
+      applyAdminVisibility(u);
+      toast(adminHidden?'Mode discret activé 🕵️':'Informations admin restaurées ✓','nfo');
+    }
   }
 });
+
+function applyAdminVisibility(u){
+  if(!u||u.uid!==ADMIN)return;
+  const badge=document.getElementById('admin-badge'),lo=document.getElementById('btn-logout');
+  if(adminHidden){
+    document.body.classList.remove('is-admin');
+    badge.style.display='none';
+    lo.style.display='none';
+  } else {
+    document.body.classList.add('is-admin');
+    badge.style.display='flex';
+    lo.style.display='block';
+  }
+}
 
 /* ── Firestore ── */
 db.collection('releases').onSnapshot(snap=>{
@@ -1096,19 +1108,13 @@ function render(list){
           <span class="mk">Type de sortie</span><span class="mv">${esc(r.releaseType||'Single')}</span>
           <span class="mk">Date de sortie</span><span class="mv">${esc(dt)}</span>
           <span class="mk">UPC:</span><span class="mv">${esc(r.upc||'—')}</span>
-          <span class="mk">ISRC:</span><span class="mv">${esc(r.isrc||'—')}</span>
+          <span class="mk">ID de sortie:</span><span class="mv">${esc(r.id||'—')}</span>
         </div>
         <div class="rstatus-row"><span class="spill ${st}"><span class="sdot"></span>${SL[st]||st}</span></div>
       </div>
       <div class="ractions">
-        <button class="btn-plat">
-          <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          AJOUTER DES PLATEFORMES
-        </button>
-        <button class="btn-split-rev">
-          <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-          SPLIT DES REVENUS
-        </button>
+        <button class="btn-plat">+ AJOUTER DES PLATEFORMES</button>
+        <button class="btn-split-rev">SPLIT DES REVENUS</button>
         <div class="admin-acts">
           <button class="btn-ed" onclick="openEdit('${r.id}')">
             <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
